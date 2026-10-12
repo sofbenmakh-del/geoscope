@@ -95,6 +95,40 @@ tr.cl:hover td{background:#f4faf9;cursor:pointer}
 #reglages label{display:block;margin:10px 0 3px;color:var(--doux);font-size:13px}
 #reglages input{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--trait);border-radius:6px}
 .etat{font-size:13px;opacity:.9}
+nav.vues{display:flex;gap:3px;background:rgba(255,255,255,.14);border-radius:9px;padding:3px}
+nav.vues button{font:inherit;font-size:14px;border:0;background:none;color:#fff;padding:5px 12px;border-radius:7px;cursor:pointer}
+nav.vues button.on{background:#fff;color:var(--teal);font-weight:700}
+#suivi{flex:1;overflow:auto;padding:14px 16px 30px}
+.sy{display:grid;grid-template-columns:repeat(6,minmax(110px,1fr));gap:8px;margin-bottom:10px}
+.sy .c{background:#fff;border:1px solid var(--trait);border-radius:10px;padding:9px 12px;cursor:pointer;user-select:none}
+.sy .c b{display:block;font-size:24px;color:var(--teal);line-height:1.15}
+.sy .c.alerte b{color:#b33a3a}
+.sy .c span{font-size:12.5px;color:var(--doux)}
+.sy .c.on{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-clair)}
+.sy .c:hover{border-color:var(--teal2)}
+.barre-s{display:flex;gap:8px;align-items:center;margin:4px 0 10px;flex-wrap:wrap}
+.barre-s input{font:inherit;font-size:14px;padding:6px 9px;border:1px solid var(--trait);border-radius:6px;flex:1;min-width:200px;max-width:420px}
+table.tsv{background:#fff;border:1px solid var(--trait);border-radius:10px;width:100%;border-collapse:separate;border-spacing:0}
+table.tsv th{position:sticky;top:0;background:#f2f7f7;z-index:1;font-size:12.5px;padding:7px 8px;border-bottom:1px solid var(--trait);white-space:nowrap;cursor:default}
+table.tsv td{padding:6px 8px;border-bottom:1px solid #edf2f2;font-size:13px;vertical-align:top}
+table.tsv tr{cursor:pointer}
+table.tsv tr:hover td:not([style*="background"]){background:#f7fbfb}
+td.num{font-weight:700;color:var(--teal);white-space:nowrap}
+td.d{white-space:nowrap}
+td.stc{text-align:center}
+.pas{display:inline-block;min-width:36px;padding:1px 8px;border-radius:10px;font-weight:700;font-size:12px;background:#eef2f2;color:var(--doux);white-space:nowrap}
+.cli .petit,.cli .adr{font-size:12px;color:var(--doux)}
+.cli .adr{display:none;white-space:pre-wrap;margin-top:2px}
+tr.ouvert .cli .adr{display:block}
+td.rem{min-width:160px;max-width:300px}
+td.rem div{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-wrap}
+tr.ouvert td.rem div{display:block}
+.sc{background:#fff;border:1px solid var(--trait);border-radius:10px;padding:9px 11px;margin:7px 0}
+.sc .l1{display:flex;gap:8px;align-items:baseline}
+.sc .l1 .d{margin-left:auto;color:var(--doux);font-size:12.5px}
+.sc .pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;font-size:11.5px;color:var(--doux);align-items:center}
+.sc .rem{font-size:12.5px;color:var(--encre);margin-top:5px;white-space:pre-wrap}
+@media (max-width:760px){.sy{grid-template-columns:repeat(2,1fr)} nav.vues button{padding:5px 8px;font-size:13px}}
 </style>
 </head>
 <body>
@@ -114,6 +148,7 @@ tr.cl:hover td{background:#f4faf9;cursor:pointer}
 <header>
   <img src="geoscope.png" alt="">
   <div><h1>Géoscope</h1><div class="sous">Carte des études — KALIFORAGE INGÉNIERIE</div></div>
+  <nav class="vues"><button id="vu_carte" class="on" onclick="vue('carte')">🗺 Carte</button><button id="vu_suivi" onclick="vue('suivi')">📋 Suivi des dossiers</button></nav>
   <div class="vide"></div>
   <span class="etat" id="etat"></span>
   <span class="compte" id="compte"></span>
@@ -145,6 +180,7 @@ tr.cl:hover td{background:#f4faf9;cursor:pointer}
     <div class="vue" id="vue"></div>
   </aside>
 </main>
+<section id="suivi" style="display:none"></section>
 
 
 <script>
@@ -258,7 +294,7 @@ function appliquer(){
 // ---------------------------------------------------------------- panneau
 function onglet(k){ONGLET=k;$('o_etudes').classList.toggle('on',k==='etudes');$('o_stats').classList.toggle('on',k==='stats');rendre();}
 function rendre(){
-  $('compte').textContent=`${VISIBLES.length} étude${VISIBLES.length>1?'s':''}`+(VISIBLES.length!==ETUDES.length?` sur ${ETUDES.length}`:'');
+  if(VUE==='carte')$('compte').textContent=`${VISIBLES.length} étude${VISIBLES.length>1?'s':''}`+(VISIBLES.length!==ETUDES.length?` sur ${ETUDES.length}`:'');
   $('vue').innerHTML=ONGLET==='etudes'?vueEtudes():vueStats();
 }
 function vueEtudes(){
@@ -307,6 +343,72 @@ function vueStats(){
 }
 function voirCommune(lat,lon,nom){if(lat!=null)map.setView([lat,lon],13);$('f_txt').value=nom;appliquer();onglet('etudes');}
 
+// ---------------------------------------------------------------- suivi des dossiers (tableau Google)
+// Lecture seule. Les couleurs viennent du tableau lui-même (mise en forme conditionnelle comprise).
+let VUE='carte', SUIVI=null, SF={statut:null,q:'',recents:true}; const OUVERTS=new Set();
+function vue(k){
+  VUE=k;$('vu_carte').classList.toggle('on',k==='carte');$('vu_suivi').classList.toggle('on',k==='suivi');
+  document.querySelector('main').style.display=k==='carte'?'flex':'none';$('suivi').style.display=k==='suivi'?'block':'none';
+  if(k==='carte'){setTimeout(()=>map.invalidateSize(),50);rendre();}else rendreSuivi();
+}
+const SCOL={num:/numero/,commune:/commune/,client:/nom du client|client/,tel:/telephone|tel/,email:/mail/,adresse:/adresse/,
+  devis:/date devis/,interv:/date intervention/,factu:/date facturation/,prevu:/prevision/,site:/intervenu|sur site/,
+  salah:/salah/,rochdi:/rochdi/,rapport:/rapport produit/,encaisse:/encaiss/,rem:/remarque/};
+function idxCols(cols){const n=cols.map(norm),o={};for(const k in SCOL)o[k]=n.findIndex(x=>SCOL[k].test(x));return o;}
+const etatS=v=>{v=norm(v);return /^(ok|fait|oui)\b/.test(v)?'ok':/^non\b/.test(v)?'non':v?'autre':'';};
+const STATUTS=[['site','Sur site','à intervenir'],['rapport','Rapport','à produire'],['encaisse','Facture','à encaisser'],
+               ['salah','Salah','à payer'],['rochdi','Rochdi','à payer']];
+function styleC(c){if(!c)return '';let s='';if(c.bg)s+='background:'+c.bg+';';if(c.fg)s+='color:'+c.fg+';';if(c.b)s+='font-weight:700;';return s;}
+function pastille(c){
+  const e=etatS(c&&c.t);let bg=c&&c.bg,fg=c&&c.fg;
+  if(SUIVI&&!SUIVI.couleurs_feuille){bg=e==='ok'?'#b7e1cd':e==='non'?'#f4c7c3':null;fg=null;}
+  return `<span class="pas" style="${bg?'background:'+bg+';':''}${fg?'color:'+fg+';':''}">${esc((c&&c.t)||'—')}</span>`;
+}
+function basculerS(i){OUVERTS.has(i)?OUVERTS.delete(i):OUVERTS.add(i);rendreSuivi();}
+function filtreS(k){SF.statut=SF.statut===k?null:k;rendreSuivi();}
+function rendreSuivi(){
+  const z=$('suivi');
+  if(!SUIVI||!(SUIVI.lignes||[]).length){
+    z.innerHTML=`<p class="hint">${SUIVI&&SUIVI.en_cours?'Lecture du tableau de suivi…':(SUIVI&&SUIVI.erreur?'Tableau de suivi indisponible : '+esc(SUIVI.erreur):'Tableau de suivi pas encore chargé.')}</p>`;
+    $('compte').textContent='';return;
+  }
+  const ix=idxCols(SUIVI.colonnes),L=SUIVI.lignes,val=(l,k)=>ix[k]>=0?l[ix[k]]:null,tx=(l,k)=>(val(l,k)||{}).t||'';
+  const nonOk=(l,k)=>ix[k]>=0&&etatS(tx(l,k))!=='ok';
+  let rows=L.map((l,i)=>({l,i}));
+  const q=norm(SF.q).trim();
+  if(SF.statut)rows=rows.filter(r=>nonOk(r.l,SF.statut));
+  if(q)rows=rows.filter(r=>norm(r.l.map(c=>c.t).join(' ')).includes(q));
+  if(SF.recents)rows.reverse();
+  $('compte').textContent=`${rows.length} dossier${rows.length>1?'s':''}`+(rows.length!==L.length?` sur ${L.length}`:'');
+  const cartes=`<div class="sy"><div class="c ${!SF.statut?'on':''}" onclick="SF.statut=null;rendreSuivi()"><b>${L.length}</b><span>dossiers</span></div>`+
+    STATUTS.filter(([k])=>ix[k]>=0).map(([k,lib,suf])=>{const n=L.filter(l=>nonOk(l,k)).length;
+      return `<div class="c ${n?'alerte':''} ${SF.statut===k?'on':''}" onclick="filtreS('${k}')"><b>${n}</b><span>${lib} ${suf}</span></div>`;}).join('')+`</div>`;
+  const barre=`<div class="barre-s"><input id="s_q" placeholder="Rechercher : n°, commune, client, remarque…" value="${esc(SF.q)}" oninput="SF.q=this.value;rendreSuivi();setTimeout(()=>{const e=$('s_q');e.focus();e.setSelectionRange(e.value.length,e.value.length)},0)">
+    <button class="btn" onclick="SF.recents=!SF.recents;rendreSuivi()">${SF.recents?'↓ plus récents en haut':'↑ ordre du tableau'}</button>
+    <span class="hint">${SUIVI.maj?'Tableau lu le '+esc(SUIVI.maj):''}${SUIVI.en_ligne===false&&SUIVI.erreur?' — hors ligne, dernière copie':''}${SUIVI.couleurs_feuille===false?' — couleurs du tableau non transmises par Google : vert = OK, rouge = Non':''}</span>
+    ${SF.statut?`<span class="puce a">filtre : ${esc(STATUTS.find(s=>s[0]===SF.statut)[1])} ${esc(STATUTS.find(s=>s[0]===SF.statut)[2])} ✕</span>`:''}</div>`;
+  const contact=l=>[tx(l,'tel'),tx(l,'email')].filter(Boolean).map(esc).join(' · ');
+  let corps;
+  if(window.innerWidth<760){
+    corps=rows.map(({l,i})=>`<div class="sc" onclick="basculerS(${i})">
+      <div class="l1"><b style="color:var(--teal)">${esc(tx(l,'num'))}</b><b>${esc(tx(l,'commune'))}</b><span class="d">${esc(tx(l,'interv'))}</span></div>
+      <div class="cli"><div>${esc(tx(l,'client'))}</div><div class="petit">${contact(l)}</div>${OUVERTS.has(i)?`<div class="petit" style="white-space:pre-wrap">${esc(tx(l,'adresse'))}</div>`:''}</div>
+      <div class="pills">${STATUTS.filter(([k])=>ix[k]>=0).map(([k,lib])=>`${lib} ${pastille(val(l,k))}`).join(' ')}</div>
+      ${tx(l,'rem')?`<div class="rem" style="${styleC(val(l,'rem'))}">${esc(OUVERTS.has(i)?tx(l,'rem'):tx(l,'rem').slice(0,140)+(tx(l,'rem').length>140?'…':''))}</div>`:''}</div>`).join('');
+  }else{
+    const td=(l,k,cl='')=>ix[k]>=0?`<td class="${cl}" style="${styleC(val(l,k))}">${esc(tx(l,k))}</td>`:'';
+    const th=(k,t)=>ix[k]>=0?`<th>${t}</th>`:'';
+    corps=`<table class="tsv"><tr>${th('num','N°')}${th('commune','Commune')}${th('client','Client')}${th('devis','Devis')}${th('interv','Intervention')}${th('factu','Facturation')}${th('prevu','Rapport prévu')}${STATUTS.filter(([k])=>ix[k]>=0).map(([k,lib])=>`<th style="text-align:center">${lib}</th>`).join('')}${th('rem','Remarques')}</tr>`+
+      rows.map(({l,i})=>`<tr class="${OUVERTS.has(i)?'ouvert':''}" onclick="basculerS(${i})">${td(l,'num','num')}${td(l,'commune')}
+        ${ix.client>=0?`<td class="cli" style="${styleC(val(l,'client'))}"><b>${esc(tx(l,'client'))}</b><div class="petit">${contact(l)}</div><div class="adr">${esc(tx(l,'adresse'))}</div></td>`:''}
+        ${td(l,'devis','d')}${td(l,'interv','d')}${td(l,'factu','d')}${td(l,'prevu','d')}
+        ${STATUTS.filter(([k])=>ix[k]>=0).map(([k])=>`<td class="stc">${pastille(val(l,k))}</td>`).join('')}
+        ${ix.rem>=0?`<td class="rem" style="${styleC(val(l,'rem'))}"><div>${esc(tx(l,'rem'))}</div></td>`:''}</tr>`).join('')+`</table>`;
+  }
+  z.innerHTML=cartes+barre+(rows.length?corps:'<p class="hint">Aucun dossier ne correspond.</p>')+
+    `<p class="hint">Un clic sur une ligne affiche l'adresse et la remarque complète.</p>`;
+}
+window.addEventListener('resize',()=>{if(VUE==='suivi')rendreSuivi();});
 // ---------------------------------------------------------------- déverrouillage
 const deb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 async function deverrouiller(mdpAuto){
@@ -324,7 +426,7 @@ async function deverrouiller(mdpAuto){
     catch(e){throw new Error('Mot de passe incorrect.');}
     const d=JSON.parse(new TextDecoder().decode(clair));
     try{if(!mdpAuto&&$('v_garder').checked)localStorage.setItem('geoscope_mdp',mdp);}catch(e){}
-    ETUDES=d.etudes||[];
+    ETUDES=d.etudes||[];SUIVI=d.suivi||null;if(VUE==='suivi')rendreSuivi();
     $('etat').textContent=d.publie_le?'mise à jour du '+d.publie_le:'';
     $('verrou').style.display='none';$('v_mdp').value='';z.textContent='';
     remplirFiltres();appliquer();setTimeout(()=>{map.invalidateSize();cadrer();},50);
@@ -336,7 +438,7 @@ async function deverrouiller(mdpAuto){
 }
 function verrouiller(){
   try{localStorage.removeItem('geoscope_mdp')}catch(e){}
-  ETUDES=[];VISIBLES=[];calque.clearLayers();$('vue').innerHTML='';$('compte').textContent='';
+  ETUDES=[];VISIBLES=[];SUIVI=null;calque.clearLayers();$('vue').innerHTML='';$('suivi').innerHTML='';$('compte').textContent='';vue('carte');
   $('verrou').style.display='flex';$('v_mdp').focus();
 }
 dessinerFonds();
