@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Géoscope — KALIFORAGE</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="geoscope.png">
+<link rel="apple-touch-icon" href="geoscope.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --fond:#f3f6f6; --carte:#ffffff; --encre:#1d2b2e; --doux:#5d7175; --trait:#d6e0e1;
+  --teal:#1f6f78; --teal2:#2a9d8f; --teal-clair:#e3f1ef; --ambre:#d98e04; --rouge:#b33a3a;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:Calibri,"Segoe UI",Carlito,Arial,sans-serif;color:var(--encre);background:var(--fond);font-size:15px;display:flex;flex-direction:column}
+header{background:linear-gradient(90deg,#174f56,#1f6f78 55%,#2a9d8f);color:#fff;display:flex;align-items:center;gap:14px;padding:8px 16px;flex-wrap:wrap}
+header img{width:34px;height:34px}
+header h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.3px}
+header .sous{font-size:13px;opacity:.85}
+header .vide{flex:1}
+header .compte{font-size:14px;opacity:.95}
+.btn{font:inherit;font-size:13px;border:1px solid var(--trait);background:#fff;color:var(--encre);border-radius:6px;padding:5px 10px;cursor:pointer}
+.btn:hover{border-color:var(--teal2)}
+.btn.p{background:var(--teal);border-color:var(--teal);color:#fff}
+.btn.p:hover{background:#185a61}
+header .btn{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.35);color:#fff}
+header .btn:hover{background:rgba(255,255,255,.25)}
+main{flex:1;display:flex;min-height:0}
+#map{flex:1;min-width:0}
+aside{width:430px;max-width:45vw;background:var(--carte);border-left:1px solid var(--trait);display:flex;flex-direction:column;min-height:0}
+.filtres{padding:10px 12px;border-bottom:1px solid var(--trait);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.filtres input,.filtres select{font:inherit;font-size:13px;padding:5px 7px;border:1px solid var(--trait);border-radius:6px;background:#fff;width:100%}
+.filtres .large{grid-column:1/-1}
+.onglets{display:flex;border-bottom:1px solid var(--trait)}
+.onglets button{flex:1;font:inherit;font-size:14px;padding:8px;border:0;background:none;cursor:pointer;color:var(--doux);border-bottom:3px solid transparent}
+.onglets button.on{color:var(--teal);border-bottom-color:var(--teal);font-weight:700}
+.vue{flex:1;overflow:auto;padding:8px 12px 16px}
+.etude{border:1px solid var(--trait);border-radius:8px;padding:8px 10px;margin:6px 0;cursor:pointer;background:#fff}
+.etude:hover{border-color:var(--teal2);background:#fafdfd}
+.etude.sel{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-clair)}
+.etude .l1{display:flex;gap:8px;align-items:baseline}
+.etude .num{font-weight:700;color:var(--teal)}
+.etude .com{font-weight:700}
+.etude .date{margin-left:auto;color:var(--doux);font-size:13px}
+.etude .l2{color:var(--doux);font-size:13px;margin-top:2px}
+.puce{display:inline-block;background:var(--teal-clair);color:var(--teal);border-radius:10px;padding:0 7px;font-size:12px;font-weight:700;margin-right:4px}
+.puce.a{background:#fbefd9;color:#9a6403}
+h3{font-size:15px;margin:14px 0 6px;color:var(--teal)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;color:var(--doux);font-weight:600;border-bottom:1px solid var(--trait);padding:4px 6px;cursor:pointer;white-space:nowrap}
+td{border-bottom:1px solid #edf2f2;padding:4px 6px;vertical-align:top}
+tr.cl:hover td{background:#f4faf9;cursor:pointer}
+.barre{height:9px;background:var(--teal2);border-radius:4px;min-width:3px}
+.chiffres{display:flex;gap:8px;margin:6px 0 4px}
+.chiffres div{flex:1;background:var(--teal-clair);border-radius:8px;padding:8px;text-align:center}
+.chiffres b{display:block;font-size:22px;color:var(--teal)}
+.chiffres span{font-size:12px;color:var(--doux)}
+.hint{color:var(--doux);font-size:12.5px}
+.fonds{position:absolute;z-index:500;top:10px;right:10px;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:60%}
+.fonds .btn.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+.leaflet-popup-content{font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:14px;margin:12px 14px;min-width:300px}
+.fiche h4{margin:0 0 6px;font-size:17px;color:var(--teal)}
+.fiche .r{display:grid;grid-template-columns:92px 1fr;gap:4px 8px;margin:3px 0}
+.fiche .r>span:first-child{color:var(--doux)}
+.fiche ul{margin:0;padding-left:16px}
+.fiche .alt{font-style:italic;color:var(--doux);list-style:none;margin-left:-16px}
+.fiche .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.fiche .msg{font-size:12.5px;margin-top:6px;color:var(--doux)}
+.compteur{background:var(--teal);color:#fff;border:2px solid #fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+#publier{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:2000}
+#publier .boite{background:#fff;border-radius:10px;padding:18px;width:min(560px,92vw)}
+#publier label{display:block;margin:10px 0 3px;color:var(--doux);font-size:13px}
+#publier input[type=password]{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--trait);border-radius:6px}
+#verrou{position:fixed;inset:0;background:linear-gradient(160deg,#174f56,#1f6f78 50%,#2a9d8f);display:flex;align-items:center;justify-content:center;z-index:3000;padding:16px}
+#verrou .boite{background:#fff;border-radius:14px;padding:26px 22px;width:min(380px,100%);text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+#verrou h2{margin:6px 0 2px;color:var(--teal);font-size:26px}
+#verrou input[type=password]{width:100%;font:inherit;font-size:16px;padding:9px 10px;border:1px solid var(--trait);border-radius:8px;margin-top:10px}
+@media (max-width:760px){
+  main{flex-direction:column}
+  #map{flex:none;height:52vh}
+  aside{width:100%;max-width:none;border-left:0;border-top:1px solid var(--trait);flex:1}
+  header .sous{display:none}
+  header h1{font-size:19px}
+  .leaflet-popup-content{min-width:0;max-width:78vw}
+  .fiche .r{grid-template-columns:78px 1fr}
+  .fonds{top:auto;bottom:24px;left:8px;right:8px;max-width:none;justify-content:flex-start}
+  .fonds .btn{padding:4px 7px;font-size:12px}
+}
+#reglages{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:2000}
+#reglages .boite{background:#fff;border-radius:10px;padding:18px;width:min(640px,92vw)}
+#reglages label{display:block;margin:10px 0 3px;color:var(--doux);font-size:13px}
+#reglages input{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--trait);border-radius:6px}
+.etat{font-size:13px;opacity:.9}
+</style>
+</head>
+<body>
+<div id="verrou">
+  <div class="boite">
+    <img src="geoscope.png" alt="" style="width:72px;height:72px">
+    <h2>Géoscope</h2>
+    <p class="hint">Carte des études — KALIFORAGE INGÉNIERIE<br>Accès réservé : saisis le mot de passe.</p>
+    <form onsubmit="event.preventDefault();deverrouiller()">
+      <input id="v_mdp" type="password" autocomplete="current-password" placeholder="Mot de passe">
+      <label class="hint" style="display:flex;gap:6px;align-items:center;justify-content:center;margin:8px 0"><input id="v_garder" type="checkbox" style="width:auto"> rester connecté sur cet appareil</label>
+      <button class="btn p" id="v_go" style="width:100%;padding:9px">Ouvrir</button>
+    </form>
+    <div id="v_msg" class="hint" style="min-height:1.3em;margin-top:8px"></div>
+  </div>
+</div>
+<header>
+  <img src="geoscope.png" alt="">
+  <div><h1>Géoscope</h1><div class="sous">Carte des études — KALIFORAGE INGÉNIERIE</div></div>
+  <div class="vide"></div>
+  <span class="etat" id="etat"></span>
+  <span class="compte" id="compte"></span>
+  <button class="btn" onclick="verrouiller()">🔒 Verrouiller</button>
+</header>
+<main>
+  <div id="map" style="position:relative">
+    <div class="fonds" id="fonds"></div>
+  </div>
+  <aside>
+    <div class="filtres">
+      <input class="large" id="f_txt" placeholder="Rechercher : commune, client, numéro, formation…" oninput="appliquer()">
+      <select id="f_an" onchange="appliquer()"></select>
+      <select id="f_dep" onchange="appliquer()"></select>
+      <select id="f_form" onchange="appliquer()"></select>
+      <select id="f_sp" onchange="appliquer()">
+        <option value="">Sol porteur : tous</option>
+        <option value="0-1">≤ 1,00 m</option>
+        <option value="1-2">1,00 à 2,00 m</option>
+        <option value="2-4">2,00 à 4,00 m</option>
+        <option value="4-99">≥ 4,00 m (ou au-delà)</option>
+        <option value="nd">non renseigné</option>
+      </select>
+    </div>
+    <div class="onglets">
+      <button id="o_etudes" class="on" onclick="onglet('etudes')">Études</button>
+      <button id="o_stats" onclick="onglet('stats')">Statistiques</button>
+    </div>
+    <div class="vue" id="vue"></div>
+  </aside>
+</main>
+
+
+<script>
+// ---------------------------------------------------------------- données
+let ETUDES=[], VISIBLES=[], ONGLET='etudes', MODE='etudes', SEL=null, TRI={col:'nb',sens:-1};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);
+const DEPS={'01':"Ain",'02':"Aisne",'03':"Allier",'04':"Alpes-de-Haute-Provence",'05':"Hautes-Alpes",'06':"Alpes-Maritimes",'07':"Ardèche",'08':"Ardennes",'09':"Ariège",'10':"Aube",'11':"Aude",'12':"Aveyron",'13':"Bouches-du-Rhône",'14':"Calvados",'15':"Cantal",'16':"Charente",'17':"Charente-Maritime",'18':"Cher",'19':"Corrèze",'2A':"Corse-du-Sud",'2B':"Haute-Corse",'21':"Côte-d'Or",'22':"Côtes-d'Armor",'23':"Creuse",'24':"Dordogne",'25':"Doubs",'26':"Drôme",'27':"Eure",'28':"Eure-et-Loir",'29':"Finistère",'30':"Gard",'31':"Haute-Garonne",'32':"Gers",'33':"Gironde",'34':"Hérault",'35':"Ille-et-Vilaine",'36':"Indre",'37':"Indre-et-Loire",'38':"Isère",'39':"Jura",'40':"Landes",'41':"Loir-et-Cher",'42':"Loire",'43':"Haute-Loire",'44':"Loire-Atlantique",'45':"Loiret",'46':"Lot",'47':"Lot-et-Garonne",'48':"Lozère",'49':"Maine-et-Loire",'50':"Manche",'51':"Marne",'52':"Haute-Marne",'53':"Mayenne",'54':"Meurthe-et-Moselle",'55':"Meuse",'56':"Morbihan",'57':"Moselle",'58':"Nièvre",'59':"Nord",'60':"Oise",'61':"Orne",'62':"Pas-de-Calais",'63':"Puy-de-Dôme",'64':"Pyrénées-Atlantiques",'65':"Hautes-Pyrénées",'66':"Pyrénées-Orientales",'67':"Bas-Rhin",'68':"Haut-Rhin",'69':"Rhône",'70':"Haute-Saône",'71':"Saône-et-Loire",'72':"Sarthe",'73':"Savoie",'74':"Haute-Savoie",'75':"Paris",'76':"Seine-Maritime",'77':"Seine-et-Marne",'78':"Yvelines",'79':"Deux-Sèvres",'80':"Somme",'81':"Tarn",'82':"Tarn-et-Garonne",'83':"Var",'84':"Vaucluse",'85':"Vendée",'86':"Vienne",'87':"Haute-Vienne",'88':"Vosges",'89':"Yonne",'90':"Territoire de Belfort",'91':"Essonne",'92':"Hauts-de-Seine",'93':"Seine-Saint-Denis",'94':"Val-de-Marne",'95':"Val-d'Oise",'971':"Guadeloupe",'972':"Martinique",'973':"Guyane",'974':"La Réunion",'976':"Mayotte"};
+const nomDep=e=>e.num_departement?(e.num_departement+' — '+(DEPS[e.num_departement]||(e.departement||'').replace(/\s*\(.*\)$/,''))):'';
+const fmtM=v=>v==null?'':v.toFixed(2).replace('.',',')+' m';
+
+// ---------------------------------------------------------------- carte
+const ign=(layer,format)=>L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&STYLE=normal&TILEMATRIXSET=PM'
+  +'&LAYER='+layer+'&FORMAT='+format+'&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}',
+  {maxZoom:21,maxNativeZoom:19,tileSize:256,attribution:'© IGN/Géoplateforme'});
+const FONDS={plan:ign('GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2','image/png'),
+             sat:ign('ORTHOIMAGERY.ORTHOPHOTOS','image/jpeg')};
+const CADASTRE=ign('CADASTRALPARCELS.PARCELLAIRE_EXPRESS','image/png');
+const map=L.map('map',{center:[46.6,2.5],zoom:6});
+let fond='plan', cadastreOn=false;
+FONDS.plan.addTo(map);
+const calque=L.layerGroup().addTo(map);
+const MARQ={};
+
+function dessinerFonds(){
+  $('fonds').innerHTML=[['plan','Plan IGN'],['sat','Satellite']].map(([k,t])=>
+    `<button class="btn ${fond===k?'on':''}" onclick="choisirFond('${k}')">${t}</button>`).join('')+
+    `<button class="btn ${cadastreOn?'on':''}" onclick="basculerCadastre()">+ Cadastre</button>`+
+    `<span style="width:10px"></span>`+
+    [['etudes','Études'],['communes','Communes']].map(([k,t])=>
+    `<button class="btn ${MODE===k?'on':''}" onclick="choisirMode('${k}')">${t}</button>`).join('');
+}
+function choisirFond(k){map.removeLayer(FONDS[fond]);fond=k;FONDS[k].addTo(map);FONDS[k].bringToBack();dessinerFonds();}
+function basculerCadastre(){cadastreOn=!cadastreOn;if(cadastreOn)CADASTRE.addTo(map);else map.removeLayer(CADASTRE);dessinerFonds();}
+function choisirMode(k){MODE=k;dessinerFonds();dessinerCarte();if(k==='communes')cadrer();}
+
+function couleur(e){return e.id===SEL?'#d98e04':'#1f6f78';}
+function dessinerCarte(){
+  calque.clearLayers();for(const k in MARQ)delete MARQ[k];
+  const pos=VISIBLES.filter(e=>e.lat!=null&&e.lon!=null);
+  if(MODE==='etudes'){
+    for(const e of pos){
+      const m=L.circleMarker([e.lat,e.lon],{radius:8,color:'#fff',weight:2,fillColor:couleur(e),fillOpacity:.95})
+        .bindTooltip(`${esc(e.numero)} — ${esc(e.commune)}`,{direction:'top',offset:[0,-6]})
+        .bindPopup(()=>fiche(e),{maxWidth:430})
+        .on('click',()=>selectionner(e.id,false));
+      m.addTo(calque);MARQ[e.id]=m;
+    }
+  }else{
+    for(const c of parCommune(pos)){
+      const d=Math.round(26+10*Math.sqrt(c.n-1));
+      const ic=L.divIcon({className:'',html:`<div class="compteur" style="width:${d}px;height:${d}px;font-size:${c.n>9?13:14}px">${c.n}</div>`,iconSize:[d,d],iconAnchor:[d/2,d/2]});
+      L.marker([c.lat,c.lon],{icon:ic}).bindTooltip(`${esc(c.commune)} : ${c.n} étude${c.n>1?'s':''}`,{direction:'top'})
+        .on('click',()=>{$('f_txt').value=c.commune;appliquer();onglet('etudes');})
+        .addTo(calque);
+    }
+  }
+}
+function cadrer(){
+  const pts=VISIBLES.filter(e=>e.lat!=null).map(e=>[e.lat,e.lon]);
+  if(pts.length===1)map.setView(pts[0],14);
+  else if(pts.length)map.fitBounds(pts,{padding:[40,40],maxZoom:13});
+}
+
+// ---------------------------------------------------------------- fiche
+function fiche(e){
+  const sol=(e.solution||[]).map(s=>s==='§ALT§'?`<li class="alt">Solutions alternatives possibles :</li>`:`<li>${esc(s)}</li>`).join('');
+  return `<div class="fiche"><h4>${esc(e.numero)} — ${esc(e.commune)}${e.num_departement?' ('+esc(e.num_departement)+')':''}</h4>
+    <div class="r"><span>Date</span><span>${esc(e.date)}</span></div>
+    <div class="r"><span>Client</span><span>${esc(e.client)||'<i class="hint">non trouvé</i>'}</span></div>
+    <div class="r"><span>Parcelle</span><span>${esc(e.parcelle)}</span></div>
+    <div class="r"><span>Solution</span><span>${sol?`<ul>${sol}</ul>`:'<i class="hint">non trouvée</i>'}</span></div>
+    <div class="r"><span>Sol porteur</span><span>${esc(e.sol_porteur)||'<i class="hint">non trouvé</i>'}</span></div>
+    <div class="r"><span>Strate BRGM</span><span>${esc(e.strate)||'<i class="hint">non trouvée</i>'}</span></div>
+    </div>`;
+}
+function selectionner(id,voler){
+  SEL=id;
+  for(const k in MARQ)MARQ[k].setStyle({fillColor:k===id?'#d98e04':'#1f6f78'});
+  document.querySelectorAll('.etude').forEach(d=>d.classList.toggle('sel',d.dataset.id===id));
+  const e=ETUDES.find(x=>x.id===id);
+  if(voler&&e){
+    if(MODE!=='etudes')choisirMode('etudes');
+    if(e.lat!=null){map.setView([e.lat,e.lon],Math.max(map.getZoom(),15));setTimeout(()=>MARQ[id]&&MARQ[id].openPopup(),250);}
+  }
+  const d=document.querySelector(`.etude[data-id="${CSS.escape(id)}"]`);if(d&&!voler)d.scrollIntoView({block:'nearest'});
+}
+
+// ---------------------------------------------------------------- filtres
+function classeSP(e){
+  const v=e.sol_porteur_min;if(v==null)return 'nd';
+  if(v<=1)return '0-1';if(v<=2)return '1-2';if(v<4)return '2-4';return '4-99';
+}
+function remplirFiltres(){
+  const garder=(id,opts,lib)=>{const s=$(id),v=s.value;s.innerHTML=`<option value="">${lib}</option>`+opts.map(([k,t])=>`<option value="${esc(k)}">${esc(t)}</option>`).join('');if(opts.some(o=>o[0]===v))s.value=v;};
+  const uniq=f=>[...new Set(ETUDES.map(f).filter(Boolean))];
+  garder('f_an',uniq(e=>(e.date_iso||'').slice(0,4)).sort().reverse().map(a=>[a,a]),'Année : toutes');
+  garder('f_dep',uniq(e=>e.num_departement).sort().map(d=>[d,nomDep(ETUDES.find(e=>e.num_departement===d))]),'Département : tous');
+  const forms={};ETUDES.forEach(e=>{const k=e.strate_code||'';if(k&&!forms[k])forms[k]=e.strate;});
+  garder('f_form',Object.keys(forms).sort((a,b)=>a.localeCompare(b,'fr')).map(k=>[k,(forms[k]||k).slice(0,70)]),'Formation : toutes');
+}
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function appliquer(){
+  const q=norm($('f_txt').value).trim(), an=$('f_an').value, dep=$('f_dep').value, fo=$('f_form').value, sp=$('f_sp').value;
+  VISIBLES=ETUDES.filter(e=>(!an||(e.date_iso||'').startsWith(an))&&(!dep||e.num_departement===dep)&&(!fo||e.strate_code===fo)
+    &&(!sp||classeSP(e)===sp)
+    &&(!q||norm([e.numero,e.commune,e.client,e.strate,e.parcelle,e.affaire].join(' ')).includes(q)));
+  dessinerCarte();rendre();
+}
+
+// ---------------------------------------------------------------- panneau
+function onglet(k){ONGLET=k;$('o_etudes').classList.toggle('on',k==='etudes');$('o_stats').classList.toggle('on',k==='stats');rendre();}
+function rendre(){
+  $('compte').textContent=`${VISIBLES.length} étude${VISIBLES.length>1?'s':''}`+(VISIBLES.length!==ETUDES.length?` sur ${ETUDES.length}`:'');
+  $('vue').innerHTML=ONGLET==='etudes'?vueEtudes():vueStats();
+}
+function vueEtudes(){
+  if(!ETUDES.length)return `<p class="hint">Aucune étude trouvée pour l'instant. Une étude apparaît dès que le PDF de son rapport existe dans son dossier d'affaire (affaires faites avec DAKFG1).</p>`;
+  if(!VISIBLES.length)return `<p class="hint">Aucune étude ne correspond aux filtres.</p>`;
+  const sansPos=VISIBLES.filter(e=>e.lat==null);
+  return (sansPos.length?`<p class="hint">⚠ ${sansPos.length} étude(s) sans coordonnées GPS dans le rapport : absentes de la carte.</p>`:'')+
+  VISIBLES.map(e=>`<div class="etude ${e.id===SEL?'sel':''}" data-id="${esc(e.id)}" onclick="selectionner('${esc(e.id)}',true)">
+    <div class="l1"><span class="num">${esc(e.numero)}</span><span class="com">${esc(e.commune||e.affaire)}</span><span class="date">${esc(e.date)}</span></div>
+    <div class="l2">${esc(e.client)}${e.parcelle?' · '+esc(e.parcelle):''}</div>
+    <div class="l2">${e.strate_code?`<span class="puce">${esc(e.strate_code)}</span>`:''}${e.sol_porteur_min!=null?`<span class="puce a">sol porteur ${fmtM(e.sol_porteur_min)}${e.sol_porteur_max>e.sol_porteur_min?' à '+fmtM(e.sol_porteur_max):''}</span>`:''}${e.lat==null?' <span class="hint">sans position</span>':''}</div>
+  </div>`).join('');
+}
+function parCommune(liste){
+  const g={};
+  for(const e of liste){const k=(e.code_postal||'')+'|'+(e.commune||e.affaire);
+    (g[k]=g[k]||{commune:e.commune||e.affaire,cp:e.code_postal,dep:e.num_departement,n:0,der:'',lat:0,lon:0,np:0});
+    const c=g[k];c.n++;if((e.date_iso||'')>c.der)c.der=e.date_iso||'';
+    if(e.lat!=null){c.lat+=e.lat;c.lon+=e.lon;c.np++;}}
+  return Object.values(g).map(c=>(c.np&&(c.lat/=c.np,c.lon/=c.np),c));
+}
+function compter(f){const m={};VISIBLES.forEach(e=>{const k=f(e)||'—';m[k]=(m[k]||0)+1;});return Object.entries(m);}
+function trier(col){TRI=TRI.col===col?{col,sens:-TRI.sens}:{col,sens:col==='nb'||col==='der'?-1:1};rendre();}
+const dateFr=iso=>iso?iso.split('-').reverse().join('/'):'';
+function vueStats(){
+  if(!VISIBLES.length)return `<p class="hint">Aucune étude à compter.</p>`;
+  const com=parCommune(VISIBLES);
+  const cle={commune:c=>norm(c.commune),dep:c=>c.dep||'',nb:c=>c.n,der:c=>c.der};
+  com.sort((a,b)=>{const x=cle[TRI.col](a),y=cle[TRI.col](b);return (x<y?-1:x>y?1:0)*TRI.sens||norm(a.commune).localeCompare(norm(b.commune));});
+  const maxC=Math.max(...com.map(c=>c.n));
+  const ans=compter(e=>(e.date_iso||'').slice(0,4)).sort((a,b)=>b[0].localeCompare(a[0]));
+  const deps=compter(nomDep).sort((a,b)=>b[1]-a[1]);
+  const forms={};VISIBLES.forEach(e=>{const k=e.strate_code||'—';(forms[k]=forms[k]||{n:0,lib:e.strate||''}).n++;});
+  const fl=Object.entries(forms).sort((a,b)=>b[1].n-a[1].n);
+  const barres=(rows)=>{const mx=Math.max(...rows.map(r=>r[1]));return `<table>${rows.map(([k,n])=>`<tr><td style="width:46%">${esc(k)}</td><td style="width:40px;text-align:right"><b>${n}</b></td><td><div class="barre" style="width:${Math.round(100*n/mx)}%"></div></td></tr>`).join('')}</table>`;};
+  const fl_=fl.map(([k,o])=>`<tr class="cl" onclick="$('f_form').value='${esc(k)}';appliquer()"><td><span class="puce">${esc(k)}</span></td><td>${esc(o.lib.replace(/^\S+\s+[–—-]\s+/,''))}</td><td style="text-align:right"><b>${o.n}</b></td></tr>`).join('');
+  const fleche=c=>TRI.col===c?(TRI.sens>0?' ▲':' ▼'):'';
+  return `<div class="chiffres"><div><b>${VISIBLES.length}</b><span>études</span></div><div><b>${com.length}</b><span>communes</span></div><div><b>${deps.length}</b><span>départements</span></div></div>
+  <h3>Par commune</h3>
+  <table><tr><th onclick="trier('commune')">Commune${fleche('commune')}</th><th onclick="trier('dep')">Dép.${fleche('dep')}</th><th onclick="trier('nb')" style="text-align:right">Études${fleche('nb')}</th><th onclick="trier('der')">Dernière${fleche('der')}</th></tr>
+  ${com.map(c=>`<tr class="cl" onclick="voirCommune(${c.np?c.lat:'null'},${c.np?c.lon:'null'},'${esc(c.commune).replace(/'/g,"\\'")}')"><td>${esc(c.commune)}</td><td>${esc(c.dep||'')}</td><td style="text-align:right"><b>${c.n}</b> <span class="barre" style="display:inline-block;vertical-align:middle;width:${Math.round(40*c.n/maxC)}px"></span></td><td>${dateFr(c.der)}</td></tr>`).join('')}</table>
+  <h3>Par année</h3>${barres(ans)}
+  <h3>Par département</h3>${barres(deps)}
+  <h3>Par formation géologique (BRGM)</h3><table>${fl_}</table>
+  <p class="hint">Un clic sur une commune la montre sur la carte ; sur une formation, filtre les études.</p>`;
+}
+function voirCommune(lat,lon,nom){if(lat!=null)map.setView([lat,lon],13);$('f_txt').value=nom;appliquer();onglet('etudes');}
+
+// ---------------------------------------------------------------- déverrouillage
+const deb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function deverrouiller(mdpAuto){
+  const z=$('v_msg'),mdp=mdpAuto||$('v_mdp').value;z.style.color='';
+  if(!mdp){z.textContent='Saisis le mot de passe.';return;}
+  $('v_go').disabled=true;z.textContent='Ouverture…';
+  try{
+    let pub;
+    try{pub=await(await fetch('donnees.json?'+Date.now(),{cache:'no-store'})).json();}
+    catch(e){throw new Error('Données indisponibles pour le moment.');}
+    const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(mdp),'PBKDF2',false,['deriveKey']);
+    const cle=await crypto.subtle.deriveKey({name:'PBKDF2',salt:deb64(pub.sel),iterations:pub.iterations,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['decrypt']);
+    let clair;
+    try{clair=await crypto.subtle.decrypt({name:'AES-GCM',iv:deb64(pub.iv)},cle,deb64(pub.donnees));}
+    catch(e){throw new Error('Mot de passe incorrect.');}
+    const d=JSON.parse(new TextDecoder().decode(clair));
+    try{if(!mdpAuto&&$('v_garder').checked)localStorage.setItem('geoscope_mdp',mdp);}catch(e){}
+    ETUDES=d.etudes||[];
+    $('etat').textContent=d.publie_le?'mise à jour du '+d.publie_le:'';
+    $('verrou').style.display='none';$('v_mdp').value='';z.textContent='';
+    remplirFiltres();appliquer();setTimeout(()=>{map.invalidateSize();cadrer();},50);
+  }catch(e){
+    if(mdpAuto){try{localStorage.removeItem('geoscope_mdp')}catch(_){};z.textContent='';}
+    else{z.textContent=e.message;z.style.color='#b33a3a';}
+  }
+  $('v_go').disabled=false;
+}
+function verrouiller(){
+  try{localStorage.removeItem('geoscope_mdp')}catch(e){}
+  ETUDES=[];VISIBLES=[];calque.clearLayers();$('vue').innerHTML='';$('compte').textContent='';
+  $('verrou').style.display='flex';$('v_mdp').focus();
+}
+dessinerFonds();
+(function(){let m=null;try{m=localStorage.getItem('geoscope_mdp')}catch(e){};if(m)deverrouiller(m);else $('v_mdp').focus();})();
+</script>
+</body>
+</html>
